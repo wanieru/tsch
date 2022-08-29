@@ -18,5 +18,8 @@
   "homepage": "https://github.com/wanieru/tsch#readme",
   "dependencies": {
     "typescript": "^4.8.2"
-  }
+  },
+  "files": [
+    "/dist"
+  ]
 }
