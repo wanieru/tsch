@@ -1,0 +1,22 @@
+{
+  "name": "tsch",
+  "version": "1.0.0",
+  "description": "Typescript x JSON Schema",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wanieru/tsch.git"
+  },
+  "author": "wanieru",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wanieru/tsch/issues"
+  },
+  "homepage": "https://github.com/wanieru/tsch#readme",
+  "dependencies": {
+    "typescript": "^4.8.2"
+  }
+}

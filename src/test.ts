@@ -1,19 +1,3 @@
-# tsch - TypeScript x JSON Schema
-
-## What it does (currently)
-
-- Define Typescript interfaces/types using a fluent syntax
-- Typescript-centric type inference
-- Conversion of types to JSON Schema for use with a JSON Editor
-
-## What it doesn't (yet)
-
-- Data validation (Verifying whether or not some given data fits the schema)
-- Data parsing (Converting input data to something else according to the schema definition)
-
-## How to use
-
-```ts
 import { tsch } from ".";
 
 const person = tsch.object({
@@ -33,4 +17,5 @@ const person = tsch.object({
 }).title("Person");
 type Person = tsch.Infer<typeof person>;
 const personJsonSchema = person.getJsonSchemaProperty();
-```
+
+console.log(JSON.stringify(personJsonSchema, null, 2));
