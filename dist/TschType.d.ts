@@ -55,11 +55,11 @@ export declare class TschBoolean extends TschType<boolean, TschBoolean> {
     protected _baseClone(): TschBoolean;
     _clone(): TschBoolean;
 }
-export declare class TschUnion<T1, T2> extends TschType<T1 | T2> {
+export declare class TschUnion<T1, T2> extends TschType<T1 | T2, TschUnion<T1, T2>> {
     private type1;
     private type2;
     constructor(type1: TschType<T1>, type2: TschType<T2>);
-    protected _baseClone(): TschUnion<unknown, unknown>;
+    protected _baseClone(): TschUnion<T1, T2>;
     _clone(): TschUnion<T1, T2>;
     getJsonSchemaProperty(): JsonSchemaProperty;
     _isNullable(): boolean;

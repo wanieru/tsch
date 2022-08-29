@@ -207,7 +207,7 @@ class TschUnion extends TschType {
         const schema1 = this.type1._type === "undefined" ? {} : this.type1.getJsonSchemaProperty();
         const schema2 = this.type2._type === "undefined" ? {} : this.type2.getJsonSchemaProperty();
         const combined = Object.assign(Object.assign({}, schema1), schema2);
-        combined.type = [...(Array.isArray(schema1.type) ? schema1.type : [schema1.type]), ...(Array.isArray(schema2.type) ? schema2.type : [schema2.type])].filter(t => t !== "undefined");
+        combined.type = [...(Array.isArray(schema1.type) ? schema1.type : [schema1.type]), ...(Array.isArray(schema2.type) ? schema2.type : [schema2.type])].filter(t => !!t && t !== "undefined");
         if (combined.type.length < 2)
             combined.type = combined.type[0];
         if (schema1.properties && schema2.properties) {
@@ -226,10 +226,10 @@ class TschUnion extends TschType {
         return combined;
     }
     _isNullable() {
-        return this.type1._type === "null" || this.type2._type === "null";
+        return this.type1._type === "null" || this.type2._type === "null" || this.type1._isNullable() || this.type2._isNullable();
     }
     _isOptional() {
-        return this.type1._type === "undefined" || this.type2._type === "undefined";
+        return this.type1._type === "undefined" || this.type2._type === "undefined" || this.type1._isOptional() || this.type2._isOptional();
     }
 }
 exports.TschUnion = TschUnion;
@@ -295,3 +295,4 @@ class TschArray extends TschType {
     }
 }
 exports.TschArray = TschArray;
+//# sourceMappingURL=TschType.js.map

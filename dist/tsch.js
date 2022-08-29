@@ -16,3 +16,4 @@ function array(elementType) {
     return new TschType_1.TschArray(elementType);
 }
 exports.array = array;
+//# sourceMappingURL=tsch.js.map

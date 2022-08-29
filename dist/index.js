@@ -26,3 +26,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.tsch = void 0;
 const tsch = __importStar(require("./tsch"));
 exports.tsch = tsch;
+//# sourceMappingURL=index.js.map

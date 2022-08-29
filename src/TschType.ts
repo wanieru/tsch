@@ -234,7 +234,7 @@ export class TschBoolean extends TschType<boolean, TschBoolean>
         return clone;
     }
 }
-export class TschUnion<T1, T2> extends TschType<T1 | T2>
+export class TschUnion<T1, T2> extends TschType<T1 | T2, TschUnion<T1, T2>>
 {
     private type1: TschType<T1>;
     private type2: TschType<T2>;
@@ -244,9 +244,9 @@ export class TschUnion<T1, T2> extends TschType<T1 | T2>
         this.type1 = type1;
         this.type2 = type2;
     }
-    protected _baseClone()
+    protected _baseClone() 
     {
-        return new TschUnion(this.type1._clone(), this.type2._clone());
+        return new TschUnion<T1, T2>(this.type1._clone(), this.type2._clone());
     }
     public _clone(): TschUnion<T1, T2>
     {
@@ -261,7 +261,7 @@ export class TschUnion<T1, T2> extends TschType<T1 | T2>
         const schema1: JsonSchemaProperty = this.type1._type === "undefined" ? {} as JsonSchemaProperty : this.type1.getJsonSchemaProperty();
         const schema2: JsonSchemaProperty = this.type2._type === "undefined" ? {} as JsonSchemaProperty : this.type2.getJsonSchemaProperty();
         const combined: JsonSchemaProperty = { ...schema1, ...schema2 };
-        combined.type = [...(Array.isArray(schema1.type) ? schema1.type : [schema1.type]), ...(Array.isArray(schema2.type) ? schema2.type : [schema2.type])].filter(t => t !== "undefined");
+        combined.type = [...(Array.isArray(schema1.type) ? schema1.type : [schema1.type]), ...(Array.isArray(schema2.type) ? schema2.type : [schema2.type])].filter(t => !!t && t !== "undefined");
         if (combined.type.length < 2) combined.type = combined.type[0];
 
         if (schema1.properties && schema2.properties)
@@ -281,11 +281,11 @@ export class TschUnion<T1, T2> extends TschType<T1 | T2>
     }
     public _isNullable(): boolean
     {
-        return this.type1._type === "null" || this.type2._type === "null";
+        return this.type1._type === "null" || this.type2._type === "null" || this.type1._isNullable() || this.type2._isNullable();
     }
     public _isOptional(): boolean
     {
-        return this.type1._type === "undefined" || this.type2._type === "undefined";
+        return this.type1._type === "undefined" || this.type2._type === "undefined" || this.type1._isOptional() || this.type2._isOptional();
     }
 }
 export class TschObject<T extends Record<string, TschType<any>>> extends TschType<T, TschObject<T>>
