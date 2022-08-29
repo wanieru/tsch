@@ -13,3 +13,4 @@ export function array<TElement extends TschType<any>>(elementType: TElement): Ts
 {
     return new TschArray<TElement["_ts"]>(elementType);
 }
+export type TschAny = TschType<any>;

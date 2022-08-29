@@ -7,3 +7,4 @@ export declare function object<TShape extends Record<string, TschType<any>>>(sha
     [Property in keyof TShape]: TShape[Property]["_ts"];
 }>;
 export declare function array<TElement extends TschType<any>>(elementType: TElement): TschArray<TElement["_ts"]>;
+export declare type TschAny = TschType<any>;
