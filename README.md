@@ -14,7 +14,7 @@
 ## How to use
 
 ```ts
-import { tsch } from ".";
+import { tsch } from "tsch";
 
 const person = tsch.object({
     name: tsch.string().description("First and Last Name").minLength(4).default("Jeremy Dorn"),
