@@ -5,7 +5,7 @@ declare class TschValidationError {
     rawMessage: string;
     message: string;
     constructor(path: string[], message: string);
-    private formatPath;
+    static formatPath(path: string[]): string;
 }
 export interface TschTypeInternal {
     _type: string;

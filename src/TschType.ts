@@ -8,11 +8,11 @@ class TschValidationError
     public constructor(path: string[], message: string)
     {
         this.path = path;
-        this.pathString = this.formatPath(path);
+        this.pathString = TschValidationError.formatPath(path);
         this.rawMessage = message;
         this.message = `${this.pathString}: ${message}`;
     }
-    private formatPath(path: string[])
+    public static formatPath(path: string[])
     {
         if (path.length < 1) return "root";
         return path.join(".");
@@ -377,7 +377,7 @@ export class TschNull extends TschType<null, TschNull>
 
     protected isCorrectType(input: any): boolean
     {
-        return typeof input === null;
+        return input === null;
     }
     protected getTypeName() { return "null"; }
     protected validateCorrectType(path: string[], input: null, errors: TschValidationError[]): void

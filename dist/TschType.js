@@ -4,11 +4,11 @@ exports.TschArray = exports.TschObject = exports.TschUnion = exports.TschUndefin
 class TschValidationError {
     constructor(path, message) {
         this.path = path;
-        this.pathString = this.formatPath(path);
+        this.pathString = TschValidationError.formatPath(path);
         this.rawMessage = message;
         this.message = `${this.pathString}: ${message}`;
     }
-    formatPath(path) {
+    static formatPath(path) {
         if (path.length < 1)
             return "root";
         return path.join(".");
@@ -278,7 +278,7 @@ class TschNull extends TschType {
         return clone;
     }
     isCorrectType(input) {
-        return typeof input === null;
+        return input === null;
     }
     getTypeName() { return "null"; }
     validateCorrectType(path, input, errors) {
