@@ -21,6 +21,7 @@ class TschType {
         this._title = null;
         this._description = null;
         this._default = null;
+        this._examples = null;
     }
     union(other) {
         return new TschUnion(this, other);
@@ -36,6 +37,7 @@ class TschType {
         clone._title = this._title;
         clone._description = this._description;
         clone._default = this._default;
+        clone._examples = this._examples ? [...this._examples] : null;
         return clone;
     }
     title(title) {
@@ -53,6 +55,11 @@ class TschType {
         clone._default = defaultValue;
         return clone;
     }
+    examples(examples) {
+        const clone = this.clone();
+        clone._examples = [...examples];
+        return clone;
+    }
     getJsonSchemaProperty() {
         const schema = {
             "type": this._type
@@ -63,6 +70,8 @@ class TschType {
             schema.description = this._description;
         if (this._default)
             schema.default = this._default;
+        if (this._examples)
+            schema.examples = this._examples;
         return schema;
     }
     validate(input) {

@@ -4,6 +4,7 @@ export interface JsonSchemaProperty
     properties?: Record<string, JsonSchemaProperty>,
     required?: string[],
     title?: string,
+    examples?: any[],
     description?: string,
     default?: any,
     minimum?: number,

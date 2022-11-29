@@ -40,6 +40,7 @@ export abstract class TschType<T, TSelf extends TschType<T, TSelf> = any>
     protected _title: string | null;
     protected _description: string | null;
     protected _default: T | null;
+    protected _examples: T[] | null;
 
     public constructor(type: string)
     {
@@ -49,6 +50,7 @@ export abstract class TschType<T, TSelf extends TschType<T, TSelf> = any>
         this._title = null;
         this._description = null;
         this._default = null;
+        this._examples = null;
     }
     public union<T2>(other: TschType<T2, any>): TschUnion<T, T2>
     {
@@ -70,6 +72,7 @@ export abstract class TschType<T, TSelf extends TschType<T, TSelf> = any>
         clone._title = this._title;
         clone._description = this._description;
         clone._default = this._default;
+        clone._examples = this._examples ? [...this._examples] : null;
 
         return clone as TSelf;
     }
@@ -91,6 +94,12 @@ export abstract class TschType<T, TSelf extends TschType<T, TSelf> = any>
         clone._default = defaultValue;
         return clone;
     }
+    public examples(examples: T[]): TSelf
+    {
+        const clone = this.clone();
+        clone._examples = [...examples];
+        return clone;
+    }
 
     public getJsonSchemaProperty(): JsonSchemaProperty
     {
@@ -100,6 +109,7 @@ export abstract class TschType<T, TSelf extends TschType<T, TSelf> = any>
         if (this._title) schema.title = this._title;
         if (this._description) schema.description = this._description;
         if (this._default) schema.default = this._default;
+        if (this._examples) schema.examples = this._examples;
         return schema;
     }
     public validate(input: any): { valid: boolean, errors: TschValidationError[] }

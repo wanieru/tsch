@@ -23,6 +23,7 @@ export declare abstract class TschType<T, TSelf extends TschType<T, TSelf> = any
     protected _title: string | null;
     protected _description: string | null;
     protected _default: T | null;
+    protected _examples: T[] | null;
     constructor(type: string);
     union<T2>(other: TschType<T2, any>): TschUnion<T, T2>;
     optional(): TschUnion<T, undefined>;
@@ -32,6 +33,7 @@ export declare abstract class TschType<T, TSelf extends TschType<T, TSelf> = any
     title(title: string): TSelf;
     description(descriptin: string): TSelf;
     default(defaultValue: T): TSelf;
+    examples(examples: T[]): TSelf;
     getJsonSchemaProperty(): JsonSchemaProperty;
     validate(input: any): {
         valid: boolean;

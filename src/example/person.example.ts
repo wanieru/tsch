@@ -3,7 +3,7 @@ import { tsch } from "..";
 const person = tsch.object({
     name: tsch.string().description("First and Last Name").minLength(4).default("Jeremy Dorn"),
     age: tsch.number().integer().default(25).min(18).max(99).optional().title("Age"),
-    favorite_color: tsch.string().color().title("favorite color").default("#ffa500"),
+    favorite_color: tsch.string().color().title("favorite color").default("#ffa500").examples(["#fff", "#00ff00"]),
     gender: tsch.string().enumeration(["male", "female", "other"]),
     date: tsch.string().date().enumeration(["2022/12/22", "2021/11/11"]).union(tsch.number().min(50)).union(tsch.number().min(25)),
     location: tsch.object({
@@ -36,4 +36,5 @@ const personInstance = {
     }
 };
 
+console.log(JSON.stringify(personJsonSchema, null, 3));
 console.log(person.validate(personInstance));
