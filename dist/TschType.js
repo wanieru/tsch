@@ -183,7 +183,7 @@ class TschString extends TschType {
             errors.push(new TschValidationError(path, `Value must be an email.`));
         }
         if (this._format === "url" && !/^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/.test(input)) {
-            errors.push(new TschValidationError(path, `Value must be an email.`));
+            errors.push(new TschValidationError(path, `Value must be a URL.`));
         }
     }
 }
@@ -434,6 +434,10 @@ class TschArray extends TschType {
             schema.format = this._format;
         if (this._unique)
             schema.uniqueItems = this._unique;
+        if (this._minElementCount)
+            schema.minItems = this._minElementCount;
+        if (this._maxElementCount)
+            schema.maxItems = this._maxElementCount;
         return schema;
     }
     table() {
