@@ -5,10 +5,10 @@
 - Define Typescript interfaces/types using a fluent syntax
 - Typescript-centric type inference
 - Conversion of types to JSON Schema for use with a JSON Editor
+- Data validation (Verifying whether or not some given data fits the schema)
 
 ## What it doesn't (yet)
 
-- Data validation (Verifying whether or not some given data fits the schema)
 - Data parsing (Converting input data to something else according to the schema definition)
 
 ## How to use
@@ -33,6 +33,17 @@ const person = tsch.object({
 }).title("Person");
 type Person = tsch.Infer<typeof person>;
 const personJsonSchema = person.getJsonSchemaProperty();
+
+const individual : Person = {/*...*/};
+const validated = person.validate(individual);
+if(validated.valid)
+{
+  //Yay, this is a person!
+}
+else
+{
+  console.error(validated.errors);
+}
 ```
 
 Where the Person type is interpreted as:

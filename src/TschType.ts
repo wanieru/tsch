@@ -1,9 +1,41 @@
-import { JsonSchemaProperty } from "./JsonSchemaPropert";
-
-export class TschType<T, TSelf extends TschType<T, TSelf> = any>
+import { JsonSchemaProperty } from "./JsonSchemaProperty";
+class TschValidationError
 {
-    public _ts: T; //Used by Typescript for type inference
-    public _type: string;
+    path: string[];
+    pathString: string;
+    rawMessage: string;
+    message: string;
+    public constructor(path: string[], message: string)
+    {
+        this.path = path;
+        this.pathString = this.formatPath(path);
+        this.rawMessage = message;
+        this.message = `${this.pathString}: ${message}`;
+    }
+    private formatPath(path: string[])
+    {
+        if (path.length < 1) return "root";
+        return path.join(".");
+    }
+
+}
+
+export interface TschTypeInternal
+{
+    _type: string;
+    validateInternal(path: string[], input: any, errors: TschValidationError[]): void
+    clone(): TschType<any, any>
+    isOptional(): boolean
+    isNullable(): boolean
+    getTypeName(): string;
+    isCorrectType(input: any): boolean
+}
+
+export abstract class TschType<T, TSelf extends TschType<T, TSelf> = any>
+{
+    /** Used by Typescript for type inference */
+    public _ts: T;
+    protected _type: string;
 
     protected _title: string | null;
     protected _description: string | null;
@@ -24,19 +56,16 @@ export class TschType<T, TSelf extends TschType<T, TSelf> = any>
     }
     public optional(): TschUnion<T, undefined>
     {
-        return new TschUnion(this, new TschType<undefined>("undefined"));
+        return new TschUnion(this, new TschUndefined());
     }
     public nullable(): TschUnion<T, null>
     {
-        return new TschUnion(this, new TschType<null>("null"));
+        return new TschUnion(this, new TschNull());
     }
-    protected _baseClone(): TSelf
+    protected abstract newInstance(): TSelf;
+    protected clone(): TSelf
     {
-        return new TschType<T>(this._type) as TSelf;
-    }
-    public _clone(): TSelf
-    {
-        const clone = this._baseClone();
+        const clone = this.newInstance();
 
         clone._title = this._title;
         clone._description = this._description;
@@ -46,19 +75,19 @@ export class TschType<T, TSelf extends TschType<T, TSelf> = any>
     }
     public title(title: string): TSelf
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._title = title;
         return clone;
     }
     public description(descriptin: string): TSelf
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._description = descriptin;
         return clone;
     }
     public default(defaultValue: T): TSelf
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._default = defaultValue;
         return clone;
     }
@@ -73,9 +102,27 @@ export class TschType<T, TSelf extends TschType<T, TSelf> = any>
         if (this._default) schema.default = this._default;
         return schema;
     }
+    public validate(input: any): { valid: boolean, errors: TschValidationError[] }
+    {
+        const errors = [] as TschValidationError[];
+        this.validateInternal([], input, errors);
+        return { valid: errors.length == 0, errors };
+    }
+    protected validateInternal(path: string[], input: any, errors: TschValidationError[]): void
+    {
+        if (!this.isCorrectType(input))
+        {
+            errors.push(new TschValidationError(path, `Value has to be of type ${this.getTypeName()}`));
+            return;
+        }
+        this.validateCorrectType(path, input, errors);
+    }
+    protected abstract isCorrectType(input: any): boolean
+    protected abstract validateCorrectType(path: string[], input: any, errors: TschValidationError[]): void;
+    protected abstract getTypeName(): string;
 
-    public _isOptional() { return false; }
-    public _isNullable() { return false; }
+    protected isOptional() { return false; }
+    protected isNullable() { return false; }
 }
 export class TschString<T> extends TschType<T, TschString<T>>
 {
@@ -91,13 +138,13 @@ export class TschString<T> extends TschType<T, TschString<T>>
         this._minLength = null;
         this._maxLength = null;
     }
-    protected _baseClone(): TschString<T>
+    protected newInstance(): TschString<T>
     {
         return new TschString<T>();
     }
-    public _clone(): TschString<T>
+    protected clone(): TschString<T>
     {
-        const clone = super._clone() as TschString<T>;
+        const clone = super.clone() as TschString<T>;
 
         clone._format = this._format;
         clone._enum = this._enum;
@@ -117,26 +164,26 @@ export class TschString<T> extends TschType<T, TschString<T>>
     }
     public minLength(min: number)
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._minLength = min;
         return clone;
     }
     public maxLength(max: number)
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._maxLength = max;
         return clone;
     }
     public enumeration<T extends Record<string, any>>(enumeration: (keyof T)[])
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._enum = [...enumeration as string[]];
         return clone as any as TschString<keyof T>;
     }
 
     private format(format: string)
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._format = format;
         return clone;
     }
@@ -166,6 +213,44 @@ export class TschString<T> extends TschType<T, TschString<T>>
     {
         return this.format("url");
     }
+
+    protected isCorrectType(input: any): boolean
+    {
+        return typeof input === "string";
+    }
+    protected getTypeName() { return "string"; }
+
+    protected validateCorrectType(path: string[], input: string, errors: TschValidationError[]): void
+    {
+        if (!!this._enum && !this._enum.includes(input))
+        {
+            errors.push(new TschValidationError(path, `Value has to be one of the following: ${this._enum.join(", ")}`));
+        }
+        if (typeof this._minLength === "number" && input.length < this._minLength)
+        {
+            errors.push(new TschValidationError(path, `Value must be longer than ${this._minLength} characters.`));
+        }
+        if (typeof this._maxLength === "number" && input.length > this._maxLength)
+        {
+            errors.push(new TschValidationError(path, `Value must be shorter than ${this._maxLength} characters.`));
+        }
+        if (this._format === "color" && !/^#?[0-9a-f]{3,6}$/i.test(input))
+        {
+            errors.push(new TschValidationError(path, `Value must be a color hex code.`));
+        }
+        if (this._format === "date" && Number.isNaN(Date.parse(input)))
+        {
+            errors.push(new TschValidationError(path, `Value must be a date.`));
+        }
+        if (this._format === "email" && !/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(input))
+        {
+            errors.push(new TschValidationError(path, `Value must be an email.`));
+        }
+        if (this._format === "url" && !/^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/.test(input))
+        {
+            errors.push(new TschValidationError(path, `Value must be an email.`));
+        }
+    }
 }
 export class TschNumber extends TschType<number, TschNumber>
 {
@@ -179,13 +264,13 @@ export class TschNumber extends TschType<number, TschNumber>
         this._min = null;
         this._max = null;
     }
-    protected _baseClone(): TschNumber
+    protected newInstance(): TschNumber
     {
         return new TschNumber();
     }
-    public _clone(): TschNumber
+    protected clone(): TschNumber
     {
-        const clone = super._clone() as TschNumber;
+        const clone = super.clone() as TschNumber;
         clone._integer = this._integer;
         clone._min = this._min;
         clone._max = this._max;
@@ -193,19 +278,19 @@ export class TschNumber extends TschType<number, TschNumber>
     }
     public integer(): TschNumber
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._integer = true;
         return clone;
     }
     public min(min: number): TschNumber
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._min = min;
         return clone;
     }
     public max(max: number): TschNumber
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._max = max;
         return clone;
     }
@@ -217,6 +302,27 @@ export class TschNumber extends TschType<number, TschNumber>
         if (this._max !== null) schema.maximum = this._max;
         return schema;
     }
+    protected isCorrectType(input: any): boolean
+    {
+        return typeof input === "number";
+    }
+    protected getTypeName() { return "number"; }
+
+    protected validateCorrectType(path: string[], input: number, errors: TschValidationError[]): void
+    {
+        if (this._integer && !Number.isInteger(input))
+        {
+            errors.push(new TschValidationError(path, `Value has to be an integer.`));
+        }
+        if (typeof this._min === "number" && input < this._min)
+        {
+            errors.push(new TschValidationError(path, `Value must be at least ${this._min}.`));
+        }
+        if (typeof this._max === "number" && input > this._max)
+        {
+            errors.push(new TschValidationError(path, `Value must be at less than ${this._max}.`));
+        }
+    }
 }
 export class TschBoolean extends TschType<boolean, TschBoolean>
 {
@@ -224,42 +330,105 @@ export class TschBoolean extends TschType<boolean, TschBoolean>
     {
         super("boolean");
     }
-    protected _baseClone(): TschBoolean
+    protected newInstance(): TschBoolean
     {
         return new TschBoolean();
     }
-    public _clone(): TschBoolean
+    protected clone(): TschBoolean
     {
-        const clone = super._clone() as TschBoolean;
+        const clone = super.clone() as TschBoolean;
         return clone;
     }
+    protected isCorrectType(input: any): boolean
+    {
+        return typeof input === "boolean";
+    }
+    protected getTypeName() { return "boolean"; }
+
+    protected validateCorrectType(path: string[], input: boolean, errors: TschValidationError[]): void
+    {
+    }
 }
+export class TschNull extends TschType<null, TschNull>
+{
+    public constructor()
+    {
+        super("null");
+    }
+    protected newInstance(): TschNull
+    {
+        return new TschNull();
+    }
+    protected clone(): TschNull
+    {
+        const clone = super.clone() as TschNull;
+        return clone;
+    }
+
+    protected isCorrectType(input: any): boolean
+    {
+        return typeof input === null;
+    }
+    protected getTypeName() { return "null"; }
+    protected validateCorrectType(path: string[], input: null, errors: TschValidationError[]): void
+    {
+    }
+}
+export class TschUndefined extends TschType<undefined, TschUndefined>
+{
+    public constructor()
+    {
+        super("undefined");
+    }
+    protected newInstance(): TschUndefined
+    {
+        return new TschUndefined();
+    }
+    protected clone(): TschUndefined
+    {
+        const clone = super.clone() as TschUndefined;
+        return clone;
+    }
+    protected isCorrectType(input: any): boolean
+    {
+        return typeof input === "undefined";
+    }
+    protected getTypeName() { return "undefined"; }
+    protected validateCorrectType(path: string[], input: undefined, errors: TschValidationError[]): void
+    {
+    }
+}
+
 export class TschUnion<T1, T2> extends TschType<T1 | T2, TschUnion<T1, T2>>
 {
     private type1: TschType<T1>;
     private type2: TschType<T2>;
+
+    protected Type1Internal() { return this.type1 as any as TschTypeInternal; }
+    protected Type2Internal() { return this.type2 as any as TschTypeInternal; }
+
     public constructor(type1: TschType<T1>, type2: TschType<T2>)
     {
-        super(`union_${type1._type}_${type2._type}`);
+        super(`union_${(type1 as any as TschTypeInternal)._type}_${(type2 as any as TschTypeInternal)._type}`);
         this.type1 = type1;
         this.type2 = type2;
     }
-    protected _baseClone() 
+    protected newInstance() 
     {
-        return new TschUnion<T1, T2>(this.type1._clone(), this.type2._clone());
+        return new TschUnion<T1, T2>((this.type1 as any as TschTypeInternal).clone(), (this.type2 as any as TschTypeInternal).clone());
     }
-    public _clone(): TschUnion<T1, T2>
+    protected clone(): TschUnion<T1, T2>
     {
-        const clone = super._clone() as TschUnion<T1, T2>;
-        clone.type1 = this.type1._clone();
-        clone.type2 = this.type2._clone();
+        const clone = super.clone() as TschUnion<T1, T2>;
+        clone.type1 = this.Type1Internal().clone();
+        clone.type2 = this.Type2Internal().clone();
         return clone;
     }
 
     public getJsonSchemaProperty(): JsonSchemaProperty
     {
-        const schema1: JsonSchemaProperty = this.type1._type === "undefined" ? {} as JsonSchemaProperty : this.type1.getJsonSchemaProperty();
-        const schema2: JsonSchemaProperty = this.type2._type === "undefined" ? {} as JsonSchemaProperty : this.type2.getJsonSchemaProperty();
+        const schema1: JsonSchemaProperty = this.Type1Internal()._type === "undefined" ? {} as JsonSchemaProperty : this.type1.getJsonSchemaProperty();
+        const schema2: JsonSchemaProperty = this.Type2Internal()._type === "undefined" ? {} as JsonSchemaProperty : this.type2.getJsonSchemaProperty();
         const combined: JsonSchemaProperty = { ...schema1, ...schema2 };
         combined.type = [...(Array.isArray(schema1.type) ? schema1.type : [schema1.type]), ...(Array.isArray(schema2.type) ? schema2.type : [schema2.type])].filter(t => !!t && t !== "undefined");
         if (combined.type.length < 2) combined.type = combined.type[0];
@@ -279,13 +448,31 @@ export class TschUnion<T1, T2> extends TschType<T1 | T2, TschUnion<T1, T2>>
 
         return combined;
     }
-    public _isNullable(): boolean
+    protected isNullable(): boolean
     {
-        return this.type1._type === "null" || this.type2._type === "null" || this.type1._isNullable() || this.type2._isNullable();
+        return this.Type1Internal()._type === "null" || this.Type2Internal()._type === "null" || this.Type1Internal().isNullable() || this.Type2Internal().isNullable();
     }
-    public _isOptional(): boolean
+    protected isOptional(): boolean
     {
-        return this.type1._type === "undefined" || this.type2._type === "undefined" || this.type1._isOptional() || this.type2._isOptional();
+        return this.Type1Internal()._type === "undefined" || this.Type2Internal()._type === "undefined" || this.Type1Internal().isOptional() || this.Type2Internal().isOptional();
+    }
+
+    protected isCorrectType(input: any): boolean
+    {
+        return this.Type1Internal().isCorrectType(input) || this.Type2Internal().isCorrectType(input);
+    }
+    protected getTypeName() { return `${(this.type1 as any as TschTypeInternal).getTypeName()} or ${(this.type2 as any as TschTypeInternal).getTypeName()}` }
+
+    protected validateCorrectType(path: string[], input: null, errors: TschValidationError[]): void
+    {
+        if (this.Type1Internal().isCorrectType(input))
+        {
+            this.Type1Internal().validateInternal(path, input, errors);
+        }
+        if (this.Type2Internal().isCorrectType(input))
+        {
+            this.Type2Internal().validateInternal(path, input, errors);
+        }
     }
 }
 export class TschObject<T extends Record<string, TschType<any>>> extends TschType<T, TschObject<T>>
@@ -299,13 +486,13 @@ export class TschObject<T extends Record<string, TschType<any>>> extends TschTyp
         this.shape = shape;
 
     }
-    protected _baseClone(): TschObject<T>
+    protected newInstance(): TschObject<T>
     {
         return new TschObject(this.shape);
     }
-    public _clone(): TschObject<T>
+    protected clone(): TschObject<T>
     {
-        const clone = super._clone() as TschObject<T>;
+        const clone = super.clone() as TschObject<T>;
         clone.shape = this.shape;
 
 
@@ -315,7 +502,7 @@ export class TschObject<T extends Record<string, TschType<any>>> extends TschTyp
     {
         const schema = super.getJsonSchemaProperty();
 
-        schema.required = Object.keys(this.shape).filter(k => !this.shape[k]._isOptional());
+        schema.required = Object.keys(this.shape).filter(k => !(this.shape[k] as any as TschTypeInternal).isOptional());
         schema.properties = {};
         for (const key in this.shape)
         {
@@ -325,6 +512,31 @@ export class TschObject<T extends Record<string, TschType<any>>> extends TschTyp
         return schema;
     }
 
+    protected isCorrectType(input: any): boolean
+    {
+        return typeof input === "object" && input !== null && !Array.isArray(input);
+    }
+    protected getTypeName(): string
+    {
+        return "object";
+    }
+
+    protected validateCorrectType(path: string[], input: Record<string, any>, errors: TschValidationError[]): void
+    {
+        for (const key in this.shape)
+        {
+            const child = this.shape[key];
+            const childInternal = child as any as TschTypeInternal;
+            if (!childInternal.isOptional() && !input.hasOwnProperty(key))
+            {
+                errors.push(new TschValidationError(path, `Property ${key} of type ${childInternal.getTypeName()} is required.`));
+            }
+            if (input.hasOwnProperty(key))
+            {
+                childInternal.validateInternal([...path, key], input[key], errors);
+            }
+        }
+    }
 
 }
 export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<T>>
@@ -333,24 +545,30 @@ export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<
 
     private _format: string | null;
     private _unique: boolean;
+    private _minElementCount: number | null;
+    private _maxElementCount: number | null;
 
     public constructor(elementType: T)
     {
         super("array");
         this.elementType = elementType;
         this._format = null;
+        this._minElementCount = null;
+        this._maxElementCount = null;
         this._unique = false;
     }
-    protected _baseClone(): TschArray<T>
+    protected newInstance(): TschArray<T>
     {
         return new TschArray(this.elementType);
     }
-    public _clone(): TschArray<T>
+    protected clone(): TschArray<T>
     {
-        const clone = super._clone() as TschArray<T>;
+        const clone = super.clone() as TschArray<T>;
         clone.elementType = this.elementType;
         clone._format = this._format;
         clone._unique = this._unique;
+        clone._minElementCount = this._minElementCount;
+        clone._maxElementCount = this._maxElementCount;
         return clone;
     }
     public getJsonSchemaProperty(): JsonSchemaProperty
@@ -364,14 +582,61 @@ export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<
 
     public table()
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._format = "table";
+        return clone;
+    }
+    public minElements(count: number)
+    {
+        const clone = this.clone();
+        clone._minElementCount = count;
+        return clone;
+    }
+    public maxElements(count: number)
+    {
+        const clone = this.clone();
+        clone._maxElementCount = count;
         return clone;
     }
     public unique()
     {
-        const clone = this._clone();
+        const clone = this.clone();
         clone._unique = true;
         return clone;
+    }
+    protected isCorrectType(input: any): boolean
+    {
+        return typeof input === "object" && input !== null && Array.isArray(input);
+    }
+    protected getTypeName(): string
+    {
+        return `array of ${(this.elementType as any as TschTypeInternal).getTypeName()}`;
+    }
+    protected validateCorrectType(path: string[], input: any[], errors: TschValidationError[]): void
+    {
+        const elementTypeInternal = this.elementType as any as TschTypeInternal;
+        const used = new Set<string>();
+        if (typeof this._minElementCount === "number" && input.length < this._minElementCount)
+        {
+            errors.push(new TschValidationError(path, `Array must contain at least ${this._minElementCount} elements.`));
+        }
+        if (typeof this._maxElementCount === "number" && input.length > this._maxElementCount)
+        {
+            errors.push(new TschValidationError(path, `Array must contain at most ${this._maxElementCount} elements.`));
+        }
+        for (let i = 0; i < input.length; i++)
+        {
+            const element = input[i];
+            elementTypeInternal.validateInternal([...path, i.toString()], element, errors);
+            if (this._unique)
+            {
+                const json = JSON.stringify(element);
+                if (used.has(json))
+                {
+                    errors.push(new TschValidationError(path, "All values have to be unique."));
+                }
+                used.add(json);
+            }
+        }
     }
 }
