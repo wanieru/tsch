@@ -1,6 +1,6 @@
 import { tsch } from "..";
 
-const person = tsch.object({
+const person = tsch.object().title("Person").shape({
     name: tsch.string().description("First and Last Name").minLength(4).default("Jeremy Dorn"),
     age: tsch.number().integer().default(25).min(18).max(99).optional().title("Age"),
     favorite_color: tsch.string().color().title("favorite color").default("#ffa500").examples(["#fff", "#00ff00"]),
@@ -14,9 +14,10 @@ const person = tsch.object({
         type: tsch.string().enumeration(["cat", "dog", "bird", "reptile", "other"]).default("dog"),
         name: tsch.string()
     }).title("Pet")).unique().table().default([{ type: "dog", name: "Walter" }]).minElements(1).maxElements(1)
-}).title("Person");
+});
 type Person = tsch.Infer<typeof person>;
 const personJsonSchema = person.getJsonSchemaProperty();
+
 
 const personInstance = {
     pets: [
@@ -37,4 +38,4 @@ const personInstance = {
 };
 
 //console.log(JSON.stringify(personJsonSchema, null, 3));
-console.log(person.validate(personInstance));
+console.log(person.getJsonSchemaProperty().title, person.validate(personInstance));

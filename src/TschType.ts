@@ -487,36 +487,43 @@ export class TschUnion<T1, T2> extends TschType<T1 | T2, TschUnion<T1, T2>>
 }
 export class TschObject<T extends Record<string, TschType<any>>> extends TschType<T, TschObject<T>>
 {
-    public shape: T;
+    private objectShape: T;
 
 
-    public constructor(shape: T)
+    public constructor(shape?: T)
     {
         super("object");
-        this.shape = shape;
+        this.objectShape = shape ?? ({} as T);
 
     }
     protected newInstance(): TschObject<T>
     {
-        return new TschObject(this.shape);
+        return new TschObject(this.objectShape);
     }
     protected clone(): TschObject<T>
     {
         const clone = super.clone() as TschObject<T>;
-        clone.shape = this.shape;
 
+        clone.objectShape = this.objectShape;
 
         return clone;
     }
+    public shape<TNew extends Record<string, TschType<any>>>(shape: TNew)
+    {
+        const clone = this.clone() as any as TschObject<{ [Property in keyof TNew]: TNew[Property]["_ts"] }>;
+        clone.objectShape = shape;
+        return clone;
+    }
+
     public getJsonSchemaProperty(): JsonSchemaProperty
     {
         const schema = super.getJsonSchemaProperty();
 
-        schema.required = Object.keys(this.shape).filter(k => !(this.shape[k] as any as TschTypeInternal).isOptional());
+        schema.required = Object.keys(this.objectShape).filter(k => !(this.objectShape[k] as any as TschTypeInternal).isOptional());
         schema.properties = {};
-        for (const key in this.shape)
+        for (const key in this.objectShape)
         {
-            schema.properties[key] = this.shape[key].getJsonSchemaProperty();
+            schema.properties[key] = this.objectShape[key].getJsonSchemaProperty();
         }
 
         return schema;
@@ -533,9 +540,9 @@ export class TschObject<T extends Record<string, TschType<any>>> extends TschTyp
 
     protected validateCorrectType(path: string[], input: Record<string, any>, errors: TschValidationError[]): void
     {
-        for (const key in this.shape)
+        for (const key in this.objectShape)
         {
-            const child = this.shape[key];
+            const child = this.objectShape[key];
             const childInternal = child as any as TschTypeInternal;
             if (!childInternal.isOptional() && !input.hasOwnProperty(key))
             {
@@ -558,10 +565,10 @@ export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<
     private _minElementCount: number | null;
     private _maxElementCount: number | null;
 
-    public constructor(elementType: T)
+    public constructor(elementType?: T)
     {
         super("array");
-        this.elementType = elementType;
+        this.elementType = elementType ?? new TschUndefined() as any as T;
         this._format = null;
         this._minElementCount = null;
         this._maxElementCount = null;
@@ -590,6 +597,12 @@ export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<
         if (this._minElementCount) schema.minItems = this._minElementCount;
         if (this._maxElementCount) schema.maxItems = this._maxElementCount;
         return schema;
+    }
+    public element<TNew extends TschType<any>>(elementType: TNew)
+    {
+        const clone = this.clone() as any as TschArray<TNew["_ts"]>;
+        clone.elementType = elementType;
+        return clone;
     }
 
     public table()

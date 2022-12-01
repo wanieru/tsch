@@ -124,10 +124,11 @@ export declare class TschUnion<T1, T2> extends TschType<T1 | T2, TschUnion<T1, T
     protected validateCorrectType(path: string[], input: null, errors: TschValidationError[]): void;
 }
 export declare class TschObject<T extends Record<string, TschType<any>>> extends TschType<T, TschObject<T>> {
-    shape: T;
-    constructor(shape: T);
+    private objectShape;
+    constructor(shape?: T);
     protected newInstance(): TschObject<T>;
     protected clone(): TschObject<T>;
+    shape<TNew extends Record<string, TschType<any>>>(shape: TNew): TschObject<{ [Property in keyof TNew]: TNew[Property]["_ts"]; }>;
     getJsonSchemaProperty(): JsonSchemaProperty;
     protected isCorrectType(input: any): boolean;
     protected getTypeName(): string;
@@ -139,10 +140,11 @@ export declare class TschArray<T extends TschType<any>> extends TschType<T[], Ts
     private _unique;
     private _minElementCount;
     private _maxElementCount;
-    constructor(elementType: T);
+    constructor(elementType?: T);
     protected newInstance(): TschArray<T>;
     protected clone(): TschArray<T>;
     getJsonSchemaProperty(): JsonSchemaProperty;
+    element<TNew extends TschType<any>>(elementType: TNew): TschArray<TNew["_ts"]>;
     table(): TschArray<T>;
     minElements(count: number): TschArray<T>;
     maxElements(count: number): TschArray<T>;

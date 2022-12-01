@@ -367,22 +367,27 @@ exports.TschUnion = TschUnion;
 class TschObject extends TschType {
     constructor(shape) {
         super("object");
-        this.shape = shape;
+        this.objectShape = shape !== null && shape !== void 0 ? shape : {};
     }
     newInstance() {
-        return new TschObject(this.shape);
+        return new TschObject(this.objectShape);
     }
     clone() {
         const clone = super.clone();
-        clone.shape = this.shape;
+        clone.objectShape = this.objectShape;
+        return clone;
+    }
+    shape(shape) {
+        const clone = this.clone();
+        clone.objectShape = shape;
         return clone;
     }
     getJsonSchemaProperty() {
         const schema = super.getJsonSchemaProperty();
-        schema.required = Object.keys(this.shape).filter(k => !this.shape[k].isOptional());
+        schema.required = Object.keys(this.objectShape).filter(k => !this.objectShape[k].isOptional());
         schema.properties = {};
-        for (const key in this.shape) {
-            schema.properties[key] = this.shape[key].getJsonSchemaProperty();
+        for (const key in this.objectShape) {
+            schema.properties[key] = this.objectShape[key].getJsonSchemaProperty();
         }
         return schema;
     }
@@ -393,8 +398,8 @@ class TschObject extends TschType {
         return "object";
     }
     validateCorrectType(path, input, errors) {
-        for (const key in this.shape) {
-            const child = this.shape[key];
+        for (const key in this.objectShape) {
+            const child = this.objectShape[key];
             const childInternal = child;
             if (!childInternal.isOptional() && !input.hasOwnProperty(key)) {
                 errors.push(new TschValidationError(path, `Property ${key} of type ${childInternal.getTypeName()} is required.`));
@@ -409,7 +414,7 @@ exports.TschObject = TschObject;
 class TschArray extends TschType {
     constructor(elementType) {
         super("array");
-        this.elementType = elementType;
+        this.elementType = elementType !== null && elementType !== void 0 ? elementType : new TschUndefined();
         this._format = null;
         this._minElementCount = null;
         this._maxElementCount = null;
@@ -439,6 +444,11 @@ class TschArray extends TschType {
         if (this._maxElementCount)
             schema.maxItems = this._maxElementCount;
         return schema;
+    }
+    element(elementType) {
+        const clone = this.clone();
+        clone.elementType = elementType;
+        return clone;
     }
     table() {
         const clone = this.clone();
