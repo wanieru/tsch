@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.array = exports.object = exports.boolean = exports.number = exports.string = void 0;
+exports.any = exports.array = exports.object = exports.boolean = exports.number = exports.string = void 0;
 const TschType_1 = require("./TschType");
 function string() { return new TschType_1.TschString(); }
 exports.string = string;
@@ -16,4 +16,8 @@ function array(elementType) {
     return new TschType_1.TschArray(elementType);
 }
 exports.array = array;
+function any() {
+    return string().union(number()).union(boolean()).union(object()).union(array()).optional().nullable();
+}
+exports.any = any;
 //# sourceMappingURL=tsch.js.map

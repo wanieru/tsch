@@ -414,7 +414,7 @@ exports.TschObject = TschObject;
 class TschArray extends TschType {
     constructor(elementType) {
         super("array");
-        this.elementType = elementType !== null && elementType !== void 0 ? elementType : new TschUndefined();
+        this.elementType = elementType;
         this._format = null;
         this._minElementCount = null;
         this._maxElementCount = null;
@@ -434,7 +434,8 @@ class TschArray extends TschType {
     }
     getJsonSchemaProperty() {
         const schema = super.getJsonSchemaProperty();
-        schema.items = this.elementType.getJsonSchemaProperty();
+        if (this.elementType)
+            schema.items = this.elementType.getJsonSchemaProperty();
         if (this._format)
             schema.format = this._format;
         if (this._unique)

@@ -134,6 +134,7 @@ export abstract class TschType<T, TSelf extends TschType<T, TSelf> = any>
     protected isOptional() { return false; }
     protected isNullable() { return false; }
 }
+
 export class TschString<T> extends TschType<T, TschString<T>>
 {
     private _format: string | null;
@@ -558,7 +559,7 @@ export class TschObject<T extends Record<string, TschType<any>>> extends TschTyp
 }
 export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<T>>
 {
-    private elementType: T;
+    private elementType?: T;
 
     private _format: string | null;
     private _unique: boolean;
@@ -568,7 +569,7 @@ export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<
     public constructor(elementType?: T)
     {
         super("array");
-        this.elementType = elementType ?? new TschUndefined() as any as T;
+        this.elementType = elementType;
         this._format = null;
         this._minElementCount = null;
         this._maxElementCount = null;
@@ -591,7 +592,7 @@ export class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<
     public getJsonSchemaProperty(): JsonSchemaProperty
     {
         const schema = super.getJsonSchemaProperty();
-        schema.items = this.elementType.getJsonSchemaProperty();
+        if (this.elementType) schema.items = this.elementType.getJsonSchemaProperty();
         if (this._format) schema.format = this._format;
         if (this._unique) schema.uniqueItems = this._unique;
         if (this._minElementCount) schema.minItems = this._minElementCount;

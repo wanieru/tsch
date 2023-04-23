@@ -1,4 +1,4 @@
-import { TschArray, TschBoolean, TschNumber, TschObject, TschString, TschType } from "./TschType";
+import { TschArray, TschBoolean, TschNull, TschNumber, TschObject, TschString, TschType } from "./TschType";
 
 export type Infer<T extends TschType<any>> = T["_ts"];
 
@@ -13,4 +13,9 @@ export function array<TElement extends TschType<any>>(elementType?: TElement): T
 {
     return new TschArray<TElement["_ts"]>(elementType);
 }
+export function any(): TschType<any>
+{
+    return string().union(number()).union(boolean()).union(object()).union(array()).optional().nullable();
+}
+
 export type TschAny = TschType<any>;

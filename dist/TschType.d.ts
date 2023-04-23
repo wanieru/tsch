@@ -135,7 +135,7 @@ export declare class TschObject<T extends Record<string, TschType<any>>> extends
     protected validateCorrectType(path: string[], input: Record<string, any>, errors: TschValidationError[]): void;
 }
 export declare class TschArray<T extends TschType<any>> extends TschType<T[], TschArray<T>> {
-    private elementType;
+    private elementType?;
     private _format;
     private _unique;
     private _minElementCount;
